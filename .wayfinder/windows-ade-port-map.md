@@ -17,6 +17,8 @@ Produce a clear implementation route for turning upstream `per-simmons/damon-ade
 
 ## Decisions so far
 
+- [Decide Windows Port Source Layout](tickets/001-source-layout.md) - LucasAlign is the active Windows fork at the repository root; upstream ADE was merged into root history, `origin` stays LucasAlign, and `upstream` points to `https://github.com/per-simmons/damon-ade.git`.
+
 ## Not yet specified
 
 - Windows UI polish and onboarding specifics after the app boots.
