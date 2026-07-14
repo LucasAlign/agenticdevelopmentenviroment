@@ -83,6 +83,21 @@ function copyModuleIfSymlink(
 			console.log(`    Copied to: ${modulePath}`);
 			return true;
 		}
+
+		const workspaceRootModulePath = join(
+			getWorkspaceRootNodeModulesDir(nodeModulesDir),
+			moduleName,
+		);
+		if (existsSync(workspaceRootModulePath)) {
+			console.log(`  ${moduleName}: materializing from workspace root`);
+			mkdirSync(dirname(modulePath), { recursive: true });
+			cpSync(realpathSync(workspaceRootModulePath), modulePath, {
+				recursive: true,
+			});
+			console.log(`    Copied to: ${modulePath}`);
+			return true;
+		}
+
 		if (required) {
 			console.error(`  [ERROR] ${moduleName} not found at ${modulePath}`);
 			process.exit(1);
@@ -143,6 +158,10 @@ function copyAstGrepPlatformPackages(nodeModulesDir: string): void {
 			resolvedPlatformPackage =
 				copyModuleIfSymlink(nodeModulesDir, platformPkg.name, false) ||
 				resolvedPlatformPackage;
+			continue;
+		}
+		if (copyModuleIfSymlink(nodeModulesDir, platformPkg.name, false)) {
+			resolvedPlatformPackage = true;
 			continue;
 		}
 

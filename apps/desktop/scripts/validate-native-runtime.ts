@@ -24,20 +24,23 @@ function assertExists(path: string, reason: string): void {
 
 function validateLibsqlNotBundled(): void {
 	const sourceMapPath = join(projectRoot, "dist", "main", "index.js.map");
-	assertExists(
-		sourceMapPath,
-		"Main bundle sourcemap not found. Run `bun run compile:app` first.",
-	);
-
-	const sourceMap = readFileSync(sourceMapPath, "utf8");
-	if (sourceMap.includes("node_modules/.bun/libsql@")) {
-		fail(
-			[
-				"Detected bundled `libsql` sources in dist/main/index.js.map.",
-				"This usually causes runtime dynamic require failures in packaged apps.",
-				"Ensure `libsql` stays in `rollupOptions.external` for the main process.",
-			].join("\n"),
+	if (existsSync(sourceMapPath)) {
+		const sourceMap = readFileSync(sourceMapPath, "utf8");
+		if (sourceMap.includes("node_modules/.bun/libsql@")) {
+			fail(
+				[
+					"Detected bundled `libsql` sources in dist/main/index.js.map.",
+					"This usually causes runtime dynamic require failures in packaged apps.",
+					"Ensure `libsql` stays in `rollupOptions.external` for the main process.",
+				].join("\n"),
+			);
+		}
+	} else if (process.env.DISABLE_SOURCEMAPS === "1") {
+		console.warn(
+			"[validate:native-runtime] Main bundle sourcemap not found; skipping sourcemap check because DISABLE_SOURCEMAPS=1",
 		);
+	} else {
+		fail("Main bundle sourcemap not found. Run `bun run compile:app` first.");
 	}
 
 	const distMainDir = join(projectRoot, "dist", "main");

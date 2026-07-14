@@ -151,8 +151,10 @@ const config: Configuration = {
 		"!**/.DS_Store",
 	],
 
-	// Rebuild native modules for Electron's Node.js version
-	npmRebuild: true,
+	// Rebuild native modules for Electron's Node.js version. Local Windows
+	// smoke-test packaging can skip this when Visual Studio Build Tools are not
+	// installed.
+	npmRebuild: process.env.SKIP_ELECTRON_REBUILD === "1" ? false : true,
 
 	// macOS
 	mac: {

@@ -21,6 +21,7 @@ import {
 config({ path: resolve(__dirname, "../../.env"), override: true, quiet: true });
 
 const DEV_SERVER_PORT = Number(process.env.DESKTOP_VITE_PORT);
+const sourcemap = process.env.DISABLE_SOURCEMAPS === "1" ? false : true;
 
 // Validate required env vars at build time using the Zod schema (single source of truth)
 await import("./src/main/env.main");
@@ -90,7 +91,7 @@ export default defineConfig({
 		},
 
 		build: {
-			sourcemap: true,
+			sourcemap,
 			rollupOptions: {
 				input: {
 					index: resolve("src/main/index.ts"),
@@ -236,7 +237,7 @@ export default defineConfig({
 		publicDir: resolve(resources, "public"),
 
 		build: {
-			sourcemap: true,
+			sourcemap,
 			outDir: resolve(devPath, "renderer"),
 
 			rollupOptions: {

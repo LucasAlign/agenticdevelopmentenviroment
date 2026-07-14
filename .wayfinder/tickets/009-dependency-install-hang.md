@@ -69,3 +69,45 @@ bun.cmd install --ignore-scripts --backend=copyfile --linker=hoisted `
 - As a narrower graph test, temporarily changed the throwaway `C:\ade\package.json` workspace list from `apps/*` to only `apps/desktop` while keeping `packages/*` and `tooling/*`. The same hoisted copyfile install still timed out after 15 minutes, left `bun.exe` alive, and still did not create `node_modules\.bin\cross-env.cmd`. This rules out the simplest theory that the hang is only caused by `apps/mobile` or unrelated app workspaces being included in the root workspace graph.
 
 Current classification: OneDrive and Windows path length are not the primary cause. The clean short-path hoisted copyfile install reproduces the hang, so this is most likely a Bun 1.3.6 Windows package-manager extraction/linker task-drain problem for this workspace graph. The smallest reliable install path is still unknown; no clean install has produced `node_modules\.bin\cross-env.cmd`.
+
+## 2026-07-14 install-ready workaround
+
+- Moved the active build attempt to `D:\ade` because `C:` had fallen below 1 GB free and Node began failing tiny commands with `VirtualAlloc`/OpenSSL malloc errors. Deleting the old throwaway `C:\ade` checkout recovered enough C: space for Node to run again.
+- Full Bun installs still hung with both Bun 1.3.6 and npm-exec Bun 1.3.14. The reliable dependency path found so far is pnpm 10 against only the desktop dependency closure:
+
+```powershell
+cd D:\ade
+# temporary build-checkout metadata:
+# - pnpm-workspace.yaml matching package.json workspaces
+# - packageManager set to pnpm@10.0.0
+# - .npmrc with node-linker=hoisted and store-dir=D:\pnpm-store
+
+$env:TEMP='D:\ade\.tmp'
+$env:TMP='D:\ade\.tmp'
+$env:TMPDIR='D:\ade\.tmp'
+npm.cmd exec --cache D:\npm-cache --yes --package pnpm@10.0.0 -- `
+  pnpm install --filter @ade/desktop... --ignore-scripts --reporter append-only
+```
+
+- The filtered pnpm install completed in about 13 minutes and produced the needed root shims, including `node_modules\.bin\cross-env.cmd`, `electron-vite.cmd`, and `electron-builder.cmd`.
+- `compile:app` required two source fixes:
+  - `apps/desktop/src/renderer/globals.css` now imports `streamdown/styles.css` by package name and scans the hoisted root `node_modules` path instead of hard-coding `packages/ui/node_modules`.
+  - `file-icons.ts` now imports `SiCss`, because the installed `react-icons` version does not export `SiCss3`.
+- On this machine, renderer compile also needed `DISABLE_SOURCEMAPS=1` and `NODE_OPTIONS=--max-old-space-size=5120` to avoid Windows commit pressure. With those settings, Electron Vite successfully built main, preload, and renderer. Renderer transformed 9,611 modules and completed in about 12 minutes.
+- Native-module packaging needed `copy-native-modules.ts` to materialize packages from the hoisted workspace root, not only Bun's isolated store. Validation now tolerates disabled sourcemaps when `DISABLE_SOURCEMAPS=1`.
+- Electron Builder failed native rebuild for `node-pty` because Visual Studio Build Tools are not installed. Added `SKIP_ELECTRON_REBUILD=1` to allow local smoke-test packaging with rebuilds skipped; CI/release machines with Build Tools can leave rebuilds enabled.
+- Electron Builder's pnpm dependency collector failed on the temporary pnpm lock with `ERR_PNPM_MISSING_TARBALL_INTEGRITY`. For the disposable build checkout only, packaging succeeded by temporarily switching root package-manager metadata to npm and stripping app dependency metadata so Electron Builder used the explicit `files` inclusions instead of pnpm dependency collection.
+
+Install-ready smoke artifact produced:
+
+```text
+D:\ade\apps\desktop\release\ADE-0.1.0-x64.exe
+```
+
+Unpacked preview launched successfully from:
+
+```text
+D:\ade\apps\desktop\release\win-unpacked\ADE.exe
+```
+
+Ticket status: the original Bun install hang remains a Bun/package-manager issue, but the Windows port now has a working local install/package workaround using filtered pnpm, disabled sourcemaps, hoisted native-module materialization, and Electron rebuild skipping.

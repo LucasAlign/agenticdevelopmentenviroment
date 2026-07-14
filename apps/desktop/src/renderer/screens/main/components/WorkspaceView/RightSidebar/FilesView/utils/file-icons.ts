@@ -2,7 +2,7 @@ import type { IconType } from "react-icons";
 import {
 	SiC,
 	SiCplusplus,
-	SiCss3,
+	SiCss,
 	SiDocker,
 	SiGo,
 	SiGraphql,
@@ -59,10 +59,10 @@ const EXTENSION_ICONS: Record<string, FileIconConfig> = {
 	// Web
 	html: { icon: SiHtml5, color: "text-orange-500" },
 	htm: { icon: SiHtml5, color: "text-orange-500" },
-	css: { icon: SiCss3, color: "text-blue-500" },
-	scss: { icon: SiCss3, color: "text-pink-500" },
-	sass: { icon: SiCss3, color: "text-pink-500" },
-	less: { icon: SiCss3, color: "text-purple-500" },
+	css: { icon: SiCss, color: "text-blue-500" },
+	scss: { icon: SiCss, color: "text-pink-500" },
+	sass: { icon: SiCss, color: "text-pink-500" },
+	less: { icon: SiCss, color: "text-purple-500" },
 
 	// Data formats
 	json: { icon: VscJson, color: "text-yellow-500" },
