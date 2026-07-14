@@ -36,6 +36,10 @@ const NATIVE_MODULES = [
 // Dependencies of native modules that need to be copied (may be hoisted or symlinked)
 const NATIVE_MODULE_DEPS = ["bindings", "file-uri-to-path"] as const;
 
+// Runtime packages that Vite leaves external and electron-builder copies from
+// apps/desktop/node_modules via explicit file rules.
+const PACKAGED_RUNTIME_MODULES = ["friendly-words"] as const;
+
 function getWorkspaceRootNodeModulesDir(nodeModulesDir: string): string {
 	return join(nodeModulesDir, "..", "..", "..", "node_modules");
 }
@@ -264,6 +268,11 @@ function prepareNativeModules() {
 	console.log("\nPreparing native module dependencies...");
 	for (const moduleName of NATIVE_MODULE_DEPS) {
 		copyModuleIfSymlink(nodeModulesDir, moduleName, false);
+	}
+
+	console.log("\nPreparing packaged runtime modules...");
+	for (const moduleName of PACKAGED_RUNTIME_MODULES) {
+		copyModuleIfSymlink(nodeModulesDir, moduleName, true);
 	}
 
 	console.log("\nPreparing ast-grep platform package...");
