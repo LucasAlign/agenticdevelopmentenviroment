@@ -10,7 +10,7 @@
  */
 
 import { spawn } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { EventEmitter } from "node:events";
 import {
 	chmodSync,
@@ -69,7 +69,19 @@ const DEBUG_CLIENT = process.env.SUPERSET_TERMINAL_DEBUG === "1";
 // Get from shared constants for multi-worktree support (imported at top of file)
 const SUPERSET_HOME_DIR = join(homedir(), SUPERSET_DIR_NAME);
 
-const SOCKET_PATH = join(SUPERSET_HOME_DIR, "terminal-host.sock");
+function getSocketPath(): string {
+	if (process.platform !== "win32") {
+		return join(SUPERSET_HOME_DIR, "terminal-host.sock");
+	}
+
+	const suffix = createHash("sha256")
+		.update(SUPERSET_HOME_DIR)
+		.digest("hex")
+		.slice(0, 16);
+	return `\\\\.\\pipe\\ade-terminal-host-${suffix}`;
+}
+
+const SOCKET_PATH = getSocketPath();
 const TOKEN_PATH = join(SUPERSET_HOME_DIR, "terminal-host.token");
 const PID_PATH = join(SUPERSET_HOME_DIR, "terminal-host.pid");
 const SPAWN_LOCK_PATH = join(SUPERSET_HOME_DIR, "terminal-host.spawn.lock");
@@ -428,7 +440,7 @@ export class TerminalHostClient extends EventEmitter {
 
 	private async tryConnectControl(): Promise<boolean> {
 		return new Promise((resolve) => {
-			if (!existsSync(SOCKET_PATH)) {
+			if (process.platform !== "win32" && !existsSync(SOCKET_PATH)) {
 				resolve(false);
 				return;
 			}
@@ -468,7 +480,7 @@ export class TerminalHostClient extends EventEmitter {
 
 	private async tryConnectStream(): Promise<boolean> {
 		return new Promise((resolve) => {
-			if (!existsSync(SOCKET_PATH)) {
+			if (process.platform !== "win32" && !existsSync(SOCKET_PATH)) {
 				resolve(false);
 				return;
 			}
@@ -813,7 +825,7 @@ export class TerminalHostClient extends EventEmitter {
 	}: {
 		killSessions?: boolean;
 	} = {}): Promise<void> {
-		if (!existsSync(SOCKET_PATH)) return;
+		if (process.platform !== "win32" && !existsSync(SOCKET_PATH)) return;
 
 		const token = this.readAuthToken();
 
@@ -908,7 +920,6 @@ export class TerminalHostClient extends EventEmitter {
 		const timeoutMs = 2000;
 
 		while (Date.now() - startTime < timeoutMs) {
-			if (!existsSync(SOCKET_PATH)) return;
 			const live = await this.isSocketLive();
 			if (!live) return;
 			await this.sleep(100);
@@ -925,7 +936,7 @@ export class TerminalHostClient extends EventEmitter {
 	 */
 	private isSocketLive(): Promise<boolean> {
 		return new Promise((resolve) => {
-			if (!existsSync(SOCKET_PATH)) {
+			if (process.platform !== "win32" && !existsSync(SOCKET_PATH)) {
 				resolve(false);
 				return;
 			}
@@ -1007,7 +1018,7 @@ export class TerminalHostClient extends EventEmitter {
 	private async spawnDaemon(): Promise<void> {
 		// Check if socket is live first - this is the authoritative check
 		// PID file can be stale if daemon crashed and PID was reused by another process
-		if (existsSync(SOCKET_PATH)) {
+		if (process.platform === "win32" || existsSync(SOCKET_PATH)) {
 			const isLive = await this.isSocketLive();
 			if (isLive) {
 				if (DEBUG_CLIENT) {
@@ -1020,10 +1031,12 @@ export class TerminalHostClient extends EventEmitter {
 			if (DEBUG_CLIENT) {
 				console.log("[TerminalHostClient] Removing stale socket file");
 			}
-			try {
-				unlinkSync(SOCKET_PATH);
-			} catch {
-				// Ignore - might not have permission
+			if (process.platform !== "win32") {
+				try {
+					unlinkSync(SOCKET_PATH);
+				} catch {
+					// Ignore - might not have permission
+				}
 			}
 		}
 
@@ -1175,9 +1188,7 @@ export class TerminalHostClient extends EventEmitter {
 		const startTime = Date.now();
 
 		while (Date.now() - startTime < SPAWN_WAIT_MS) {
-			if (existsSync(SOCKET_PATH)) {
-				// Give it a moment to start listening
-				await this.sleep(200);
+			if (await this.isSocketLive()) {
 				return;
 			}
 			await this.sleep(100);
