@@ -532,6 +532,46 @@ export function setupKeyboardHandler(
 	const isWindows = platform.includes("win");
 
 	const handler = (event: KeyboardEvent): boolean => {
+		const isPlainCtrlC =
+			event.key.toLowerCase() === "c" &&
+			event.ctrlKey &&
+			!event.metaKey &&
+			!event.altKey &&
+			!event.shiftKey;
+
+		if (!isMac && isPlainCtrlC) {
+			const selection = xterm.getSelection();
+			if (selection) {
+				if (event.type === "keydown") {
+					event.preventDefault();
+					void navigator.clipboard?.writeText(selection).catch(() => {});
+				}
+				return false;
+			}
+			return true;
+		}
+
+		const isPlainCtrlV =
+			event.key.toLowerCase() === "v" &&
+			event.ctrlKey &&
+			!event.metaKey &&
+			!event.altKey &&
+			!event.shiftKey;
+
+		if (!isMac && isPlainCtrlV) {
+			if (event.type === "keydown") {
+				event.preventDefault();
+				void navigator.clipboard
+					?.readText()
+					.then((text) => {
+						if (!text) return;
+						options.onWrite?.(text.replace(/\r?\n/g, "\r"));
+					})
+					.catch(() => {});
+			}
+			return false;
+		}
+
 		const isShiftEnter =
 			event.key === "Enter" &&
 			event.shiftKey &&

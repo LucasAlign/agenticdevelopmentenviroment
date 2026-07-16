@@ -199,6 +199,106 @@ describe("setupKeyboardHandler", () => {
 		expect(onWrite).toHaveBeenCalledWith("\x1bb");
 		expect(onWrite).toHaveBeenCalledWith("\x1bf");
 	});
+
+	it("copies selection on Ctrl+C on Windows", () => {
+		const writeText = mock(() => Promise.resolve());
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { platform: "Win32", clipboard: { writeText } };
+
+		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
+			handler: null,
+		};
+		const xterm = {
+			attachCustomKeyEventHandler: (
+				next: (event: KeyboardEvent) => boolean,
+			) => {
+				captured.handler = next;
+			},
+			getSelection: mock(() => "selected text"),
+		};
+		const preventDefault = mock(() => {});
+
+		setupKeyboardHandler(xterm as unknown as XTerm);
+		const shouldProcess = captured.handler?.({
+			type: "keydown",
+			key: "c",
+			ctrlKey: true,
+			metaKey: false,
+			altKey: false,
+			shiftKey: false,
+			preventDefault,
+		} as unknown as KeyboardEvent);
+
+		expect(shouldProcess).toBe(false);
+		expect(preventDefault).toHaveBeenCalled();
+		expect(writeText).toHaveBeenCalledWith("selected text");
+	});
+
+	it("allows Ctrl+C interrupt when there is no selection on Windows", () => {
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { platform: "Win32" };
+
+		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
+			handler: null,
+		};
+		const xterm = {
+			attachCustomKeyEventHandler: (
+				next: (event: KeyboardEvent) => boolean,
+			) => {
+				captured.handler = next;
+			},
+			getSelection: mock(() => ""),
+		};
+
+		setupKeyboardHandler(xterm as unknown as XTerm);
+		const shouldProcess = captured.handler?.({
+			type: "keydown",
+			key: "c",
+			ctrlKey: true,
+			metaKey: false,
+			altKey: false,
+			shiftKey: false,
+		} as KeyboardEvent);
+
+		expect(shouldProcess).toBe(true);
+	});
+
+	it("pastes clipboard text on Ctrl+V on Windows", async () => {
+		const readText = mock(() => Promise.resolve("hello\nworld"));
+		// @ts-expect-error - mocking navigator for tests
+		globalThis.navigator = { platform: "Win32", clipboard: { readText } };
+
+		const captured: { handler: ((event: KeyboardEvent) => boolean) | null } = {
+			handler: null,
+		};
+		const xterm = {
+			attachCustomKeyEventHandler: (
+				next: (event: KeyboardEvent) => boolean,
+			) => {
+				captured.handler = next;
+			},
+			getSelection: mock(() => ""),
+		};
+		const onWrite = mock(() => {});
+		const preventDefault = mock(() => {});
+
+		setupKeyboardHandler(xterm as unknown as XTerm, { onWrite });
+		const shouldProcess = captured.handler?.({
+			type: "keydown",
+			key: "v",
+			ctrlKey: true,
+			metaKey: false,
+			altKey: false,
+			shiftKey: false,
+			preventDefault,
+		} as unknown as KeyboardEvent);
+
+		await Promise.resolve();
+
+		expect(shouldProcess).toBe(false);
+		expect(preventDefault).toHaveBeenCalled();
+		expect(onWrite).toHaveBeenCalledWith("hello\rworld");
+	});
 });
 
 describe("setupCopyHandler", () => {
