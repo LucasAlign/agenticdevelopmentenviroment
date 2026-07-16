@@ -181,6 +181,21 @@
 		height: 100%;
 		width: 100%;
 	}
+
+	.xterm,
+	.xterm * {
+		user-select: text;
+	}
+
+	.xterm .xterm-helper-textarea {
+		pointer-events: auto;
+		user-select: text;
+	}
+
+	.xterm .xterm-screen canvas {
+		pointer-events: none;
+	}
+
 	.xterm .xterm-rows a {
 		color: inherit;
 		cursor: pointer;

@@ -419,11 +419,17 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		}
 	};
 
+	const handlePointerDown = () => {
+		xtermRef.current?.focus();
+		handleTerminalFocusRef.current();
+	};
+
 	return (
 		<div
 			role="application"
 			className="relative h-full w-full overflow-hidden"
 			style={{ backgroundColor: terminalBg }}
+			onPointerDown={handlePointerDown}
 			onDragOver={handleDragOver}
 			onDrop={handleDrop}
 		>
