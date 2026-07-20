@@ -4,6 +4,8 @@ import path from "node:path";
 import {
 	buildWrapperScript,
 	createWrapper,
+	getWrapperPath,
+	WRAPPER_MARKER,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
 import { getNotifyScriptPath } from "./notify-hook";
@@ -89,7 +91,23 @@ export function createClaudeWrapper(): void {
 	createWrapper("claude", script);
 }
 
-export function createCodexWrapper(): void {
+export function createCodexWrapper(
+	platform: NodeJS.Platform = process.platform,
+): void {
+	if (platform === "win32") {
+		const wrapperPath = getWrapperPath("codex");
+		if (
+			fs.existsSync(wrapperPath) &&
+			fs.readFileSync(wrapperPath, "utf-8").includes(WRAPPER_MARKER)
+		) {
+			fs.unlinkSync(wrapperPath);
+			console.log(
+				"[agent-setup] Removed incompatible extensionless codex wrapper on Windows",
+			);
+		}
+		return;
+	}
+
 	const notifyPath = getNotifyScriptPath();
 	const script = buildWrapperScript(
 		"codex",

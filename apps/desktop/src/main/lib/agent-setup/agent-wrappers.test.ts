@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { execFileSync } from "node:child_process";
 import {
 	chmodSync,
+	existsSync,
 	mkdirSync,
 	readFileSync,
 	rmSync,
@@ -123,7 +124,7 @@ describe("agent-wrappers copilot", () => {
 	});
 
 	it("injects codex message-start watcher + completion notifications in wrapper", () => {
-		createCodexWrapper();
+		createCodexWrapper("linux");
 
 		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
 		const wrapper = readFileSync(wrapperPath, "utf-8");
@@ -145,6 +146,15 @@ describe("agent-wrappers copilot", () => {
 		);
 		expect(execLine).not.toContain("{{NOTIFY_PATH}}");
 		expect(wrapper).toContain(execLine);
+	});
+
+	it("removes the incompatible extensionless codex wrapper on Windows", () => {
+		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
+		writeFileSync(wrapperPath, "#!/bin/bash\n# ADE agent-wrapper v2\n");
+
+		createCodexWrapper("win32");
+
+		expect(existsSync(wrapperPath)).toBe(false);
 	});
 
 	it("creates mastracode wrapper passthrough", () => {
