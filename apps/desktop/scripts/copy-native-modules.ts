@@ -21,7 +21,7 @@ import {
 	readdirSync,
 	readFileSync,
 	realpathSync,
-	rmSync,
+	unlinkSync,
 } from "node:fs";
 import { dirname, join } from "node:path";
 
@@ -119,7 +119,7 @@ function copyModuleIfSymlink(
 		console.log(`    Real path: ${realPath}`);
 
 		// Remove the symlink
-		rmSync(modulePath);
+		unlinkSync(modulePath);
 
 		// Copy the actual files
 		cpSync(realPath, modulePath, { recursive: true });
