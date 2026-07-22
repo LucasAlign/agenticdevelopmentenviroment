@@ -40,4 +40,10 @@ describe("desktop beta workflow", () => {
 			"bun run --filter=@ade/desktop install:deps",
 		);
 	});
+
+	test("expects staged assets in lexical order during handoff", () => {
+		expect(betaWorkflow).toContain(
+			'"${expected_installer} SHA256SUMS.txt "',
+		);
+	});
 });

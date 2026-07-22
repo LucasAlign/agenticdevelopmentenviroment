@@ -196,7 +196,7 @@ jobs:
           set -euo pipefail
           cd beta-assets
           expected_installer='${{ needs.build-windows.outputs.installer_name }}'
-          test "$(find . -maxdepth 1 -type f -printf '%f\n' | sort | tr '\n' ' ')" = "SHA256SUMS.txt ${expected_installer} "
+          test "$(find . -maxdepth 1 -type f -printf '%f\n' | sort | tr '\n' ' ')" = "${expected_installer} SHA256SUMS.txt "
           sha256sum --check SHA256SUMS.txt
           cd ..
           cat > release-notes.md <<EOF
