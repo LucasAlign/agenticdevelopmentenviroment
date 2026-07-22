@@ -488,7 +488,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 						</div>
 						<Switch
 							id="telemetry"
-							checked={telemetryEnabled ?? true}
+							checked={telemetryEnabled ?? false}
 							onCheckedChange={handleTelemetryToggle}
 							disabled={isTelemetryLoading || setTelemetryEnabled.isPending}
 						/>

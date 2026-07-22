@@ -13,11 +13,9 @@ const author = pkg.author?.name ?? pkg.author;
 const productName = pkg.productName;
 
 // Release repo — single source of truth for where artifacts + update manifests
-// are published. TODO(release): confirm GitHub owner/org and set the public repo
-// name before publishing. Must stay in sync with RELEASE_REPO_* in
-// src/main/lib/auto-updater.ts.
-const RELEASE_REPO_OWNER = "per-simmons"; // TODO(release): confirm GitHub owner/org
-const RELEASE_REPO_NAME = "damon-ade"; // TODO(release): set public repo name
+// are published. Must stay in sync with RELEASE_REPO_* in auto-updater.ts.
+const RELEASE_REPO_OWNER = "LucasAlign";
+const RELEASE_REPO_NAME = "agenticdevelopmentenviroment";
 
 // Notarize only when Apple credentials are present in the environment
 // (CI signing job, or a local signed build). electron-builder reads the
@@ -30,7 +28,7 @@ const linuxIconPath = join(pkg.resources, "build/icons");
 const winIconPath = join(pkg.resources, "build/icons/icon.ico");
 
 const config: Configuration = {
-	appId: "studio.persimmons.ade",
+	appId: "com.lucasalign.ade",
 	productName,
 	copyright: `Copyright © ${currentYear} — ${author}`,
 	electronVersion: pkg.devDependencies.electron.replace(/^\^/, ""),
@@ -80,6 +78,12 @@ const config: Configuration = {
 			to: "resources/migrations",
 			filter: ["**/*"],
 		},
+		// The extension loader reads this directly from process.resourcesPath.
+		{
+			from: "src/resources/browser-extension",
+			to: "browser-extension",
+			filter: ["**/*"],
+		},
 	],
 
 	files: [
@@ -88,7 +92,7 @@ const config: Configuration = {
 		{
 			from: pkg.resources,
 			to: "resources",
-			filter: ["**/*"],
+			filter: ["**/*", "!browser-extension/**/*"],
 		},
 		// Native modules that can't be bundled by Vite.
 		// bun creates symlinks for direct deps in workspace node_modules.
@@ -154,7 +158,7 @@ const config: Configuration = {
 	// Rebuild native modules for Electron's Node.js version. Local Windows
 	// smoke-test packaging can skip this when Visual Studio Build Tools are not
 	// installed.
-	npmRebuild: process.env.SKIP_ELECTRON_REBUILD === "1" ? false : true,
+	npmRebuild: process.env.SKIP_ELECTRON_REBUILD !== "1",
 
 	// macOS
 	mac: {
@@ -225,7 +229,12 @@ const config: Configuration = {
 	// NSIS installer (Windows)
 	nsis: {
 		oneClick: false,
+		perMachine: false,
+		allowElevation: false,
 		allowToChangeInstallationDirectory: true,
+		createDesktopShortcut: true,
+		createStartMenuShortcut: true,
+		shortcutName: productName,
 	},
 };
 

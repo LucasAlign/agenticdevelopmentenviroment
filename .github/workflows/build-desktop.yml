@@ -97,14 +97,27 @@ jobs:
           SUPERSET_WORKSPACE_NAME: superset
         run: bun run compile:app
 
+      - name: Configure macOS signing credentials
+        shell: bash
+        env:
+          MAC_CERTIFICATE: ${{ secrets.MAC_CERTIFICATE }}
+          MAC_CERTIFICATE_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          APPLE_ID_VALUE: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD_VALUE: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID_VALUE: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          if [[ -n "$MAC_CERTIFICATE" ]]; then
+            printf 'CSC_LINK=%s\n' "$MAC_CERTIFICATE" >> "$GITHUB_ENV"
+            printf 'CSC_KEY_PASSWORD=%s\n' "$MAC_CERTIFICATE_PASSWORD" >> "$GITHUB_ENV"
+            printf 'APPLE_ID=%s\n' "$APPLE_ID_VALUE" >> "$GITHUB_ENV"
+            printf 'APPLE_APP_SPECIFIC_PASSWORD=%s\n' "$APPLE_ID_PASSWORD_VALUE" >> "$GITHUB_ENV"
+            printf 'APPLE_TEAM_ID=%s\n' "$APPLE_TEAM_ID_VALUE" >> "$GITHUB_ENV"
+          else
+            echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> "$GITHUB_ENV"
+          fi
+
       - name: Build Electron app
         working-directory: apps/desktop
-        env:
-          CSC_LINK: ${{ secrets.MAC_CERTIFICATE }}
-          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: bun run package -- --publish never --config ${{ inputs.electron_builder_config }}
 
       - name: Verify app-update.yml exists

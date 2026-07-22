@@ -12,17 +12,13 @@ const UPDATE_CHECK_INTERVAL_MS = 1000 * 60 * 60 * 4; // 4 hours
 // ---------------------------------------------------------------------------
 // Release repo + auto-update gating
 //
-// The updater feed points at GitHub Releases on the PUBLIC repo. There is a
-// single source of truth for the repo name below.
-//
-// TODO(release): before publishing, confirm the GitHub owner/org and set the
-// public repo name. These two constants are the ONLY place the updater names
-// the release repo.
-const RELEASE_REPO_OWNER = "per-simmons"; // TODO(release): confirm GitHub owner/org
-const RELEASE_REPO_NAME = "damon-ade"; // TODO(release): set public repo name
+// The updater feed points at the canonical GitHub Releases repository. These
+// constants are the only place the updater names the release repository.
+const RELEASE_REPO_OWNER = "LucasAlign";
+const RELEASE_REPO_NAME = "agenticdevelopmentenviroment";
 
-// Auto-update is intentionally DISABLED for the v1 public launch. To turn it
-// on later: set RELEASE_REPO_NAME above and flip this single flag to `true`.
+// Auto-update is intentionally disabled for the private beta. Upgrades use a
+// manually downloaded installer so release promotion never mutates a client.
 const AUTO_UPDATE_ENABLED = false;
 
 /**
