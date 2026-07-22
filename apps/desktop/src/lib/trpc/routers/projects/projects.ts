@@ -43,6 +43,7 @@ import {
 import { getDefaultProjectColor } from "./utils/colors";
 import { discoverAndSaveProjectIcon } from "./utils/favicon-discovery";
 import { fetchGitHubOwner, getGitHubAvatarUrl } from "./utils/github";
+import { listGitHubRepositories } from "./utils/github-repositories";
 
 type Project = SelectProject;
 
@@ -258,6 +259,9 @@ function extractRepoName(urlInput: string): string | null {
 
 export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 	return router({
+		listGitHubRepositories: publicProcedure.query(() =>
+			listGitHubRepositories(),
+		),
 		get: publicProcedure
 			.input(z.object({ id: z.string() }))
 			.query(({ input }): Project => {

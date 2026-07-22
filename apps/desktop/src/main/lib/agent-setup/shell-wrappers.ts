@@ -16,7 +16,8 @@ const DEFAULT_PATHS: ShellWrapperPaths = {
 };
 
 function getShellName(shell: string): string {
-	return shell.split("/").pop() || shell;
+	const name = shell.split(/[\\/]/).pop() || shell;
+	return name.replace(/\.(?:exe|cmd)$/i, "").toLowerCase();
 }
 
 function writeFileIfChanged(
@@ -232,6 +233,12 @@ export function getCommandShellArgs(
 	paths: ShellWrapperPaths = DEFAULT_PATHS,
 ): string[] {
 	const shellName = getShellName(shell);
+	if (shellName === "cmd") {
+		return ["/d", "/c", command];
+	}
+	if (shellName === "powershell" || shellName === "pwsh") {
+		return ["-NoLogo", "-NoProfile", "-Command", command];
+	}
 	const zshRc = path.join(paths.ZSH_DIR, ".zshrc");
 	const bashRcfile = path.join(paths.BASH_DIR, "rcfile");
 	if (shellName === "zsh" && fs.existsSync(zshRc)) {

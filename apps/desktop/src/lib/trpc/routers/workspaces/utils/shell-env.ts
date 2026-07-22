@@ -18,6 +18,67 @@ const FALLBACK_CACHE_TTL_MS = 10_000; // 10 second cache for fallback (retry soo
 let pathFixAttempted = false;
 let pathFixSucceeded = false;
 
+export function parseEnvironmentOutput(stdout: string): Record<string, string> {
+	const environment: Record<string, string> = {};
+	for (const line of stdout.split(/\r?\n/)) {
+		const index = line.indexOf("=");
+		if (index > 0) {
+			environment[line.substring(0, index)] = line.substring(index + 1);
+		}
+	}
+	return environment;
+}
+
+export function combineWindowsPaths(
+	currentPath?: string,
+	machinePath?: string,
+	userPath?: string,
+): string {
+	return [currentPath, machinePath, userPath]
+		.filter((value): value is string => Boolean(value?.trim()))
+		.join(";");
+}
+
+export function getEnvironmentCommand(
+	platform: NodeJS.Platform = process.platform,
+	environment: NodeJS.ProcessEnv = process.env,
+): { command: string; args: string[] } {
+	if (platform === "win32") {
+		return {
+			command: environment.ComSpec || "cmd.exe",
+			args: ["/d", "/s", "/c", "set"],
+		};
+	}
+	if (environment.SHELL) {
+		return { command: environment.SHELL, args: ["-lc", "env"] };
+	}
+	return {
+		command: platform === "darwin" ? "/bin/zsh" : "/bin/bash",
+		args: ["-lc", "env"],
+	};
+}
+
+async function getFreshWindowsPath(): Promise<string | undefined> {
+	const systemRoot = process.env.SystemRoot || "C:\\Windows";
+	const powershell = `${systemRoot}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`;
+	try {
+		const { stdout } = await execFileAsync(
+			powershell,
+			[
+				"-NoLogo",
+				"-NoProfile",
+				"-NonInteractive",
+				"-Command",
+				"[string]::Join(';', @([Environment]::GetEnvironmentVariable('Path','Machine'), [Environment]::GetEnvironmentVariable('Path','User')))",
+			],
+			{ encoding: "utf8", timeout: 10_000 },
+		);
+		return stdout.trim() || undefined;
+	} catch {
+		return undefined;
+	}
+}
+
 /**
  * Gets the full shell environment by spawning a login shell.
  * This captures PATH and other environment variables set in shell profiles
@@ -36,30 +97,35 @@ export async function getShellEnvironment(): Promise<Record<string, string>> {
 		return { ...cachedEnv };
 	}
 
-	const shell =
-		process.env.SHELL ||
-		(process.platform === "darwin" ? "/bin/zsh" : "/bin/bash");
+	const environmentCommand = getEnvironmentCommand();
 
 	try {
 		// Use -lc flags (not -ilc):
 		// -l: login shell (sources .zprofile/.profile for PATH setup)
 		// -c: execute command
 		// Avoids -i (interactive) to skip TTY prompts and reduce latency
-		const { stdout } = await execFileAsync(shell, ["-lc", "env"], {
-			timeout: 10_000,
-			env: {
-				...process.env,
-				HOME: os.homedir(),
+		const { stdout } = await execFileAsync(
+			environmentCommand.command,
+			environmentCommand.args,
+			{
+				timeout: 10_000,
+				env: {
+					...process.env,
+					HOME: os.homedir(),
+				},
 			},
-		});
+		);
 
-		const env: Record<string, string> = {};
-		for (const line of stdout.split("\n")) {
-			const idx = line.indexOf("=");
-			if (idx > 0) {
-				const key = line.substring(0, idx);
-				const value = line.substring(idx + 1);
-				env[key] = value;
+		const env = parseEnvironmentOutput(stdout);
+		if (process.platform === "win32") {
+			const freshWindowsPath = await getFreshWindowsPath();
+			const combinedPath = combineWindowsPaths(
+				env.Path || env.PATH,
+				freshWindowsPath,
+			);
+			if (combinedPath) {
+				env.Path = combinedPath;
+				env.PATH = combinedPath;
 			}
 		}
 
@@ -140,10 +206,9 @@ export async function execWithShellEnv(
 	try {
 		return await execFileAsync(cmd, args, { ...options, encoding: "utf8" });
 	} catch (error) {
-		// Only retry on ENOENT (command not found), only on macOS
+		// Only retry on ENOENT (command not found).
 		// Skip if we've already successfully fixed PATH, or if a fix attempt is in progress
 		if (
-			process.platform !== "darwin" ||
 			pathFixSucceeded ||
 			pathFixAttempted ||
 			!(error instanceof Error) ||
@@ -160,15 +225,17 @@ export async function execWithShellEnv(
 			const shellEnv = await getShellEnvironment();
 
 			// Persist the fix to process.env so all subsequent calls benefit
-			if (shellEnv.PATH) {
-				process.env.PATH = shellEnv.PATH;
+			const shellPath = shellEnv.PATH || shellEnv.Path;
+			if (shellPath) {
+				process.env.PATH = shellPath;
+				if (process.platform === "win32") process.env.Path = shellPath;
 				pathFixSucceeded = true;
 				console.log("[shell-env] Fixed process.env.PATH for GUI app");
 			}
 
 			// Retry with fixed env (respect caller's other env vars, force PATH if present)
-			const retryEnv = shellEnv.PATH
-				? { ...shellEnv, ...options?.env, PATH: shellEnv.PATH }
+			const retryEnv = shellPath
+				? { ...shellEnv, ...options?.env, PATH: shellPath, Path: shellPath }
 				: { ...shellEnv, ...options?.env };
 
 			return await execFileAsync(cmd, args, {

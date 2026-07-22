@@ -1,6 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { useState } from "react";
+import { GitHubRepositoryPicker } from "renderer/components/GitHubRepositoryPicker";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useProjectCreationHandler } from "../../hooks/useProjectCreationHandler";
 
@@ -37,11 +38,22 @@ export function CloneRepoTab({ onError, parentDir }: CloneRepoTabProps) {
 	return (
 		<div className="flex flex-col gap-5">
 			<div>
+				<p className="block text-sm font-medium text-foreground mb-2">
+					GitHub repository
+				</p>
+				<GitHubRepositoryPicker
+					value={url}
+					onSelect={setUrl}
+					disabled={isLoading}
+				/>
+			</div>
+
+			<div>
 				<label
 					htmlFor="clone-url"
 					className="block text-sm font-medium text-foreground mb-2"
 				>
-					Repository URL
+					Or enter a repository URL
 				</label>
 				<Input
 					id="clone-url"

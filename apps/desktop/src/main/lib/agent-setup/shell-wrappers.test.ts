@@ -113,14 +113,27 @@ describe("shell-wrappers", () => {
 		expect(getShellArgs("powershell")).toEqual([]);
 	});
 
+	it("uses Windows command shell arguments", () => {
+		expect(
+			getCommandShellArgs("C:\\Windows\\System32\\cmd.exe", "echo ok"),
+		).toEqual(["/d", "/c", "echo ok"]);
+		expect(
+			getCommandShellArgs(
+				"C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+				"echo ok",
+			),
+		).toEqual(["-NoLogo", "-NoProfile", "-Command", "echo ok"]);
+	});
+
 	describe("fish shell", () => {
 		it("uses --init-command to prepend BIN_DIR to PATH for fish", () => {
 			const args = getShellArgs("/opt/homebrew/bin/fish", TEST_PATHS);
+			const escapedTestBinDir = TEST_BIN_DIR.replaceAll("\\", "\\\\");
 
 			expect(args).toEqual([
 				"-l",
 				"--init-command",
-				`set -l _superset_bin "${TEST_BIN_DIR}"; contains -- "$_superset_bin" $PATH; or set -gx PATH "$_superset_bin" $PATH`,
+				`set -l _superset_bin "${escapedTestBinDir}"; contains -- "$_superset_bin" $PATH; or set -gx PATH "$_superset_bin" $PATH`,
 			]);
 		});
 

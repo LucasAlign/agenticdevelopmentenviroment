@@ -29,6 +29,7 @@ import type { ChangeEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import { HiArrowPath } from "react-icons/hi2";
 import { BinaryInstallDialog } from "renderer/components/BinaryInstallDialog/BinaryInstallDialog";
+import { GitHubRepositoryPicker } from "renderer/components/GitHubRepositoryPicker";
 import { downscaleImageToDataUrl } from "renderer/lib/downscale-image";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useRuntimeAvailability } from "renderer/stores/model-bar/useRuntimeAvailability";
@@ -288,11 +289,18 @@ export function NewAgentModal() {
 							</div>
 						</RadioGroup>
 						{repoMode === "clone" && (
-							<Input
-								value={cloneUrl}
-								onChange={(e) => setCloneUrl(e.target.value)}
-								placeholder="https://github.com/owner/repo.git"
-							/>
+							<div className="flex flex-col gap-2">
+								<GitHubRepositoryPicker
+									value={cloneUrl}
+									onSelect={setCloneUrl}
+									disabled={createAgent.isPending}
+								/>
+								<Input
+									value={cloneUrl}
+									onChange={(e) => setCloneUrl(e.target.value)}
+									placeholder="Or enter a repository URL"
+								/>
+							</div>
 						)}
 						{repoMode === "local" && (
 							<Input

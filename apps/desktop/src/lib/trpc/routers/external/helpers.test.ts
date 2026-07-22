@@ -1,7 +1,16 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import os from "node:os";
 import path from "node:path";
-import { getAppCommand, resolvePath, stripPathWrappers } from "./helpers";
+import {
+	getAppCommand as getPlatformAppCommand,
+	resolvePath,
+	stripPathWrappers,
+} from "./helpers";
+
+const getAppCommand = (
+	app: Parameters<typeof getPlatformAppCommand>[0],
+	path: string,
+) => getPlatformAppCommand(app, path, "darwin");
 
 describe("getAppCommand", () => {
 	test("returns null for finder (handled specially)", () => {
@@ -127,6 +136,30 @@ describe("getAppCommand", () => {
 			},
 		]);
 	});
+
+	test("uses Windows CLI launchers for supported editors", () => {
+		const environment = { LOCALAPPDATA: "C:\\LocalAppData" };
+		expect(
+			getPlatformAppCommand("vscode", "C:\\repo", "win32", environment),
+		).toEqual([
+			{
+				command: "C:\\LocalAppData\\Programs\\Microsoft VS Code\\Code.exe",
+				args: ["C:\\repo"],
+			},
+		]);
+		expect(
+			getPlatformAppCommand("cursor", "C:\\repo", "win32", environment),
+		).toEqual([
+			{
+				command: "C:\\LocalAppData\\Programs\\cursor\\Cursor.exe",
+				args: ["C:\\repo"],
+			},
+		]);
+	});
+
+	test("falls back to the OS default for unsupported Windows apps", () => {
+		expect(getPlatformAppCommand("xcode", "C:\\repo", "win32", {})).toBeNull();
+	});
 });
 
 describe("resolvePath", () => {
@@ -173,17 +206,17 @@ describe("resolvePath", () => {
 	describe("relative paths", () => {
 		test("resolves relative path against cwd", () => {
 			const result = resolvePath("src/file.ts", "/project");
-			expect(result).toBe("/project/src/file.ts");
+			expect(result).toBe(path.resolve("/project", "src/file.ts"));
 		});
 
 		test("resolves ./prefixed path against cwd", () => {
 			const result = resolvePath("./src/file.ts", "/project");
-			expect(result).toBe("/project/src/file.ts");
+			expect(result).toBe(path.resolve("/project", "src/file.ts"));
 		});
 
 		test("resolves ../prefixed path against cwd", () => {
 			const result = resolvePath("../sibling/file.ts", "/project/subdir");
-			expect(result).toBe("/project/sibling/file.ts");
+			expect(result).toBe(path.resolve("/project", "sibling/file.ts"));
 		});
 
 		test("resolves relative path against process.cwd() when no cwd provided", () => {
@@ -274,7 +307,7 @@ describe("resolvePath", () => {
 
 		test("handles wrappers combined with relative paths", () => {
 			const result = resolvePath("(src/file.ts)", "/project");
-			expect(result).toBe("/project/src/file.ts");
+			expect(result).toBe(path.resolve("/project", "src/file.ts"));
 		});
 	});
 });
