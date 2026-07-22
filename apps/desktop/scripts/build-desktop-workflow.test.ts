@@ -33,4 +33,11 @@ describe("desktop beta workflow", () => {
 		expect(betaWorkflow).toContain("gh release list `");
 		expect(betaWorkflow).toContain("$existingReleaseTags -contains $tag");
 	});
+
+	test("does not invoke the Bash-only root postinstall on Windows", () => {
+		expect(betaWorkflow).toContain("bun install --frozen --ignore-scripts");
+		expect(betaWorkflow).toContain(
+			"bun run --filter=@ade/desktop install:deps",
+		);
+	});
 });
