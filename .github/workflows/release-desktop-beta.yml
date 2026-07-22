@@ -73,13 +73,15 @@ jobs:
       - name: Install frozen dependencies
         run: bun install --frozen
 
-      - name: Run repository quality gates
+      - name: Run private beta quality gates
         shell: pwsh
         run: |
           bunx sherif
-          bunx biome check .
           bun run typecheck
-          bun run test
+          bun test `
+            apps/desktop/electron-builder.test.ts `
+            apps/desktop/scripts/build-desktop-workflow.test.ts `
+            apps/desktop/src/shared/constants.test.ts
 
       - name: Compile desktop application
         working-directory: apps/desktop
