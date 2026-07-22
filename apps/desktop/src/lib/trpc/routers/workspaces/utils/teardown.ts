@@ -40,25 +40,37 @@ export async function runTeardown({
 
 	try {
 		const shell =
-			process.env.SHELL ||
-			(process.platform === "darwin" ? "/bin/zsh" : "/bin/bash");
+			process.platform === "win32"
+				? process.env.ComSpec || "cmd.exe"
+				: process.env.SHELL ||
+					(process.platform === "darwin" ? "/bin/zsh" : "/bin/bash");
 
 		const baseEnv = buildSafeEnv(sanitizeEnv(process.env) || {});
 		const wrapperEnv = getShellEnv(shell);
 		const args = getCommandShellArgs(shell, command);
 
 		const output = await new Promise<string>((resolve, reject) => {
-			const child = spawn(shell, args, {
-				cwd: worktreePath,
-				detached: true,
-				stdio: ["ignore", "pipe", "pipe"],
-				env: {
-					...baseEnv,
-					...wrapperEnv,
-					SUPERSET_WORKSPACE_NAME: workspaceName,
-					SUPERSET_ROOT_PATH: mainRepoPath,
-				},
-			});
+			const childEnvironment = {
+				...baseEnv,
+				...wrapperEnv,
+				SUPERSET_WORKSPACE_NAME: workspaceName,
+				SUPERSET_ROOT_PATH: mainRepoPath,
+			};
+			const child =
+				process.platform === "win32"
+					? spawn(command, [], {
+							cwd: worktreePath,
+							detached: true,
+							stdio: ["ignore", "pipe", "pipe"],
+							env: childEnvironment,
+							shell,
+						})
+					: spawn(shell, args, {
+							cwd: worktreePath,
+							detached: true,
+							stdio: ["ignore", "pipe", "pipe"],
+							env: childEnvironment,
+						});
 
 			let combined = "";
 			child.stdout?.on("data", (chunk: Buffer) => {
@@ -104,7 +116,15 @@ export async function runTeardown({
 						`[teardown] Timed out after ${TEARDOWN_TIMEOUT_MS}ms, killing process group`,
 					);
 					try {
-						if (child.pid) process.kill(-child.pid, "SIGKILL");
+						if (child.pid) {
+							if (process.platform === "win32") {
+								spawn("taskkill", ["/pid", String(child.pid), "/t", "/f"], {
+									stdio: "ignore",
+								});
+							} else {
+								process.kill(-child.pid, "SIGKILL");
+							}
+						}
 					} catch {}
 					reject(
 						new Error(`Teardown timed out after ${TEARDOWN_TIMEOUT_MS}ms`),

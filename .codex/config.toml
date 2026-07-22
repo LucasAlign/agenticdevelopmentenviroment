@@ -1,5 +1,6 @@
 [mcp_servers.superset]
 url = "https://api.superset.sh/api/agent/mcp"
+enabled = false
 
 [mcp_servers.expo-mcp]
 url = "https://mcp.expo.dev/mcp"
@@ -8,15 +9,19 @@ enabled = false
 [mcp_servers.maestro]
 command = "maestro"
 args = ["mcp"]
+enabled = false
 
 [mcp_servers.neon]
 url = "https://mcp.neon.tech/mcp"
+enabled = false
 
 [mcp_servers.linear]
 url = "https://mcp.linear.app/mcp"
+enabled = false
 
 [mcp_servers.sentry]
 url = "https://mcp.sentry.dev/mcp"
+enabled = false
 
 [mcp_servers.desktop-automation]
 command = "bun"

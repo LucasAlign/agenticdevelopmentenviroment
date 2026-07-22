@@ -40,6 +40,82 @@ const BUNDLE_ID_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 	pycharm: ["com.jetbrains.pycharm", "com.jetbrains.pycharm.ce"],
 };
 
+function getWindowsAppCommands(
+	app: ExternalApp,
+	targetPath: string,
+	environment: NodeJS.ProcessEnv,
+): { command: string; args: string[] }[] | null {
+	const localAppData = environment.LOCALAPPDATA;
+	const programFiles = environment.ProgramFiles;
+	const candidates: Partial<Record<ExternalApp, string[]>> = {
+		vscode: [
+			...(localAppData
+				? [
+						nodePath.join(
+							localAppData,
+							"Programs",
+							"Microsoft VS Code",
+							"Code.exe",
+						),
+					]
+				: []),
+			...(programFiles
+				? [nodePath.join(programFiles, "Microsoft VS Code", "Code.exe")]
+				: []),
+		],
+		"vscode-insiders": [
+			...(localAppData
+				? [
+						nodePath.join(
+							localAppData,
+							"Programs",
+							"Microsoft VS Code Insiders",
+							"Code - Insiders.exe",
+						),
+					]
+				: []),
+		],
+		cursor: [
+			...(localAppData
+				? [nodePath.join(localAppData, "Programs", "cursor", "Cursor.exe")]
+				: []),
+			...(programFiles
+				? [nodePath.join(programFiles, "Cursor", "Cursor.exe")]
+				: []),
+		],
+		sublime: [
+			...(programFiles
+				? [nodePath.join(programFiles, "Sublime Text", "sublime_text.exe")]
+				: []),
+		],
+	};
+
+	const commands = candidates[app];
+	return commands?.length
+		? commands.map((command) => ({ command, args: [targetPath] }))
+		: null;
+}
+
+const LINUX_APP_COMMANDS: Partial<Record<ExternalApp, string>> = {
+	vscode: "code",
+	"vscode-insiders": "code-insiders",
+	cursor: "cursor",
+	antigravity: "antigravity",
+	zed: "zed",
+	sublime: "subl",
+	intellij: "idea",
+	webstorm: "webstorm",
+	pycharm: "pycharm",
+	phpstorm: "phpstorm",
+	rubymine: "rubymine",
+	goland: "goland",
+	clion: "clion",
+	rider: "rider",
+	datagrip: "datagrip",
+	fleet: "fleet",
+	rustrover: "rustrover",
+};
+
 /**
  * Get candidate commands to open a path in the specified app.
  * Returns an array of commands to try in order — for multi-edition apps (IntelliJ, PyCharm),
@@ -49,7 +125,17 @@ const BUNDLE_ID_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 export function getAppCommand(
 	app: ExternalApp,
 	targetPath: string,
+	platform: NodeJS.Platform = process.platform,
+	environment: NodeJS.ProcessEnv = process.env,
 ): { command: string; args: string[] }[] | null {
+	if (platform === "win32") {
+		return getWindowsAppCommands(app, targetPath, environment);
+	}
+	if (platform === "linux") {
+		const command = LINUX_APP_COMMANDS[app];
+		return command ? [{ command, args: [targetPath] }] : null;
+	}
+
 	const bundleIds = BUNDLE_ID_CANDIDATES[app];
 	if (bundleIds) {
 		return bundleIds.map((id) => ({
@@ -228,7 +314,8 @@ export function resolvePath(filePath: string, cwd?: string): string {
 	if (resolved.startsWith("~")) {
 		const home = process.env.HOME || process.env.USERPROFILE;
 		if (home) {
-			resolved = resolved.replace(/^~/, home);
+			const suffix = resolved.slice(1).replace(/^[\\/]+/, "");
+			resolved = suffix ? nodePath.join(home, suffix) : home;
 		}
 	}
 
