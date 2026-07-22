@@ -11,6 +11,10 @@ const betaWorkflow = readFileSync(
 	join(import.meta.dirname, "../../../.github/workflows/release-desktop-beta.yml"),
 	"utf8",
 );
+const stableWorkflow = readFileSync(
+	join(import.meta.dirname, "../../../.github/workflows/release-desktop.yml"),
+	"utf8",
+);
 
 describe("desktop build workflow", () => {
 	test("does not expose an empty signing certificate as CSC_LINK", () => {
@@ -44,6 +48,17 @@ describe("desktop beta workflow", () => {
 	test("expects staged assets in lexical order during handoff", () => {
 		expect(betaWorkflow).toContain(
 			'"${expected_installer} SHA256SUMS.txt "',
+		);
+	});
+});
+
+describe("stable desktop release workflow", () => {
+	test("does not claim private beta tags", () => {
+		expect(stableWorkflow).toContain(
+			"if: ${{ !contains(github.ref_name, '-beta.') }}",
+		);
+		expect(stableWorkflow).toContain(
+			"!contains(github.ref_name, '-beta.')",
 		);
 	});
 });
