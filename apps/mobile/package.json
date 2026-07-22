@@ -65,7 +65,7 @@
 		"expo-image": "~55.0.3",
 		"expo-linking": "~55.0.3",
 		"expo-localization": "~55.0.4",
-		"expo-network": "~55.0.4",
+		"expo-network": "~57.0.1",
 		"expo-router": "~55.0.0-preview.6",
 		"expo-secure-store": "~55.0.4",
 		"expo-status-bar": "~55.0.2",
