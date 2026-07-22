@@ -18,7 +18,7 @@ line in the draft release notes with that evidence URL.
 2. Run `certutil -hashfile ADE-<version>-x64.exe SHA256` and compare the result
    with `SHA256SUMS.txt`.
 3. Confirm the installer is unsigned and record the expected SmartScreen
-   **More info → Run anyway** journey.
+   **More info -> Run anyway** journey.
 4. Record the tag, commit SHA, workflow-run URL, installer filename, and SHA-256
    in the acceptance evidence.
 
