@@ -14,6 +14,9 @@ export const DEBUG_TERMINAL =
 
 // Nerd Fonts first for shell theme compatibility (Oh My Posh, Powerlevel10k, etc.)
 export const DEFAULT_TERMINAL_FONT_FAMILY = [
+	"Cascadia Code",
+	"Cascadia Mono",
+	"JetBrains Mono",
 	"MesloLGM Nerd Font",
 	"MesloLGM NF",
 	"MesloLGS NF",
@@ -31,7 +34,7 @@ export const DEFAULT_TERMINAL_FONT_FAMILY = [
 	"monospace",
 ].join(", ");
 
-export const DEFAULT_TERMINAL_FONT_SIZE = 14;
+export const DEFAULT_TERMINAL_FONT_SIZE = 15;
 
 export const TERMINAL_OPTIONS: ITerminalOptions = {
 	allowTransparency: true,
