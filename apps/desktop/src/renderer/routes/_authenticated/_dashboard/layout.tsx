@@ -4,6 +4,7 @@ import {
 	useMatchRoute,
 	useNavigate,
 } from "@tanstack/react-router";
+import agentOrangeWallpaper from "renderer/assets/branding/agent-orange-wallpaper.png";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
@@ -88,7 +89,12 @@ function DashboardLayout() {
 	);
 
 	return (
-		<div className="flex flex-col h-full w-full">
+		<div
+			className="flex flex-col h-full w-full bg-black bg-cover bg-center bg-no-repeat"
+			style={{
+				backgroundImage: `linear-gradient(rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.28)), url(${agentOrangeWallpaper})`,
+			}}
+		>
 			<TopBar />
 			<div className="flex flex-1 overflow-hidden">
 				{isWorkspaceSidebarOpen && (

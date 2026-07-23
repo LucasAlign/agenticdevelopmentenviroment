@@ -34,6 +34,10 @@ describe("Windows installer configuration", () => {
 		});
 	});
 
+	test("uses the Agent Orange Windows application icon", () => {
+		expect(config.win?.icon).toContain("agent-orange-icon.png");
+	});
+
 	test("places the browser extension at its packaged runtime path", () => {
 		expect(config.extraResources).toContainEqual({
 			from: "src/resources/browser-extension",
