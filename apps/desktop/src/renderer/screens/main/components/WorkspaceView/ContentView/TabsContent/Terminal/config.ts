@@ -34,6 +34,7 @@ export const DEFAULT_TERMINAL_FONT_FAMILY = [
 export const DEFAULT_TERMINAL_FONT_SIZE = 14;
 
 export const TERMINAL_OPTIONS: ITerminalOptions = {
+	allowTransparency: true,
 	cursorBlink: true,
 	fontSize: DEFAULT_TERMINAL_FONT_SIZE,
 	fontFamily: DEFAULT_TERMINAL_FONT_FAMILY,

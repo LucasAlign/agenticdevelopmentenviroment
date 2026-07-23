@@ -2,17 +2,18 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { SearchAddon } from "@xterm/addon-search";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
 import { getTerminalProfile } from "shared/terminal-profiles";
 import { SessionKilledOverlay } from "./components";
+import { TerminalWatermark } from "./components/TerminalWatermark";
 import {
 	DEFAULT_TERMINAL_FONT_FAMILY,
 	DEFAULT_TERMINAL_FONT_SIZE,
 } from "./config";
-import { getDefaultTerminalBg, type TerminalRendererRef } from "./helpers";
+import { getDefaultTerminalTheme, type TerminalRendererRef } from "./helpers";
 import {
 	useFileLinkClick,
 	useTerminalColdRestore,
@@ -86,7 +87,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const focusedPaneId = useTabsStore((s) => s.focusedPaneIds[tabId]);
 	const globalTerminalTheme = useTerminalTheme();
 	const terminalProfileId = pane?.terminalProfileId;
-	const terminalTheme = (() => {
+	const opaqueTerminalTheme = useMemo(() => {
 		if (terminalProfileId) {
 			const profile = getTerminalProfile(terminalProfileId);
 			if (profile) {
@@ -96,8 +97,16 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 				};
 			}
 		}
-		return globalTerminalTheme;
-	})();
+		return globalTerminalTheme ?? getDefaultTerminalTheme();
+	}, [globalTerminalTheme, terminalProfileId]);
+	const terminalBg = opaqueTerminalTheme.background ?? "#151110";
+	const watermarkedTerminalTheme = useMemo(
+		() => ({
+			...opaqueTerminalTheme,
+			background: "rgba(0, 0, 0, 0.76)",
+		}),
+		[opaqueTerminalTheme],
+	);
 
 	// Terminal connection state and mutations
 	const {
@@ -180,7 +189,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		paneId,
 		tabId,
 		focusedPaneId,
-		terminalTheme,
+		terminalTheme: watermarkedTerminalTheme,
 		paneInitialCwd,
 		clearPaneInitialData,
 		workspaceCwd,
@@ -371,9 +380,9 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 
 	useEffect(() => {
 		const xterm = xtermRef.current;
-		if (!xterm || !terminalTheme) return;
-		xterm.options.theme = terminalTheme;
-	}, [terminalTheme]);
+		if (!xterm) return;
+		xterm.options.theme = watermarkedTerminalTheme;
+	}, [watermarkedTerminalTheme]);
 
 	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(
 		undefined,
@@ -392,8 +401,6 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 		xterm.options.fontSize = size;
 		fitAddonRef.current?.fit();
 	}, [fontSettings]);
-
-	const terminalBg = terminalTheme?.background ?? getDefaultTerminalBg();
 
 	const handleDragOver = (event: React.DragEvent) => {
 		event.preventDefault();
@@ -433,6 +440,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			onDragOver={handleDragOver}
 			onDrop={handleDrop}
 		>
+			<TerminalWatermark />
 			<TerminalSearch
 				searchAddon={searchAddonRef.current}
 				isOpen={isSearchOpen}
@@ -442,7 +450,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 			{exitStatus === "killed" && !connectionError && !isRestoredMode && (
 				<SessionKilledOverlay onRestart={restartTerminal} />
 			)}
-			<div ref={terminalRef} className="h-full w-full" />
+			<div ref={terminalRef} className="relative z-10 h-full w-full" />
 		</div>
 	);
 };
