@@ -34,6 +34,7 @@ import type {
 	TerminalStreamEvent,
 } from "./types";
 import { shellEscapePaths } from "./utils";
+import { TERMINAL_BACKGROUND_OPACITY } from "./watermark-visibility";
 
 const stripLeadingEmoji = (text: string) =>
 	text.trim().replace(/^[\p{Emoji}\p{Symbol}]\s*/u, "");
@@ -103,7 +104,7 @@ export const Terminal = ({ paneId, tabId, workspaceId }: TerminalProps) => {
 	const watermarkedTerminalTheme = useMemo(
 		() => ({
 			...opaqueTerminalTheme,
-			background: "rgba(0, 0, 0, 0.76)",
+			background: `rgba(0, 0, 0, ${TERMINAL_BACKGROUND_OPACITY})`,
 		}),
 		[opaqueTerminalTheme],
 	);
